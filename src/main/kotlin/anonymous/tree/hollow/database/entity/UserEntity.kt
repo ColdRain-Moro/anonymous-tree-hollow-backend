@@ -19,7 +19,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
  */
 object TableUser : LongIdTable("user") {
     // 邮箱: 可能是校园邮箱，如果是校园邮箱则无需上传校园卡照片
-    val email = varchar("email", 64)
+    val email = varchar("email", 64).uniqueIndex()
     // md5散列后的密码
     val md5Password = varchar("md5_password", 32)
     // 盐值

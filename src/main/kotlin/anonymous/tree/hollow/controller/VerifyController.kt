@@ -61,9 +61,9 @@ class VerifyController(private val verifyService: VerifyService) {
                 .body(2)
                 .build()
         }
-        val email = StpUtil.getLoginId().toString()
+        val userId = StpUtil.getLoginIdAsLong()
         return ResponseDto.builder<Int>()
-            .body(if (verifyService.hasRequested(email)) 0 else 1)
+            .body(if (verifyService.hasRequested(userId)) 0 else 1)
             .build()
     }
 
@@ -74,7 +74,7 @@ class VerifyController(private val verifyService: VerifyService) {
     fun ctrlUpgradeRequest(
         @RequestParam("image") image: MultipartFile
     ): ResponseDto<String> {
-        val email = StpUtil.getLoginId().toString()
+        val userId = StpUtil.getLoginIdAsLong()
         // 预检一下文件大小，大于10MB的情况下直接拒绝，防止OOM
         if (image.size > 10 * 1024 * 1024) {
             return ResponseDto.builder<String>()
@@ -82,7 +82,7 @@ class VerifyController(private val verifyService: VerifyService) {
                 .message("上传照片大小不能超过10MB")
                 .build()
         }
-        verifyService.sendRequest(email, image)
+        verifyService.sendRequest(userId, image)
         return ResponseDto.ok()
     }
 
@@ -106,8 +106,8 @@ class VerifyController(private val verifyService: VerifyService) {
     @SaCheckRole("admin")
     @GetMapping("upgradeRequest")
     fun ctrlGetRequestList(
-        @RequestParam("offset", defaultValue = "0") offset: Long,
-        @RequestParam("limit", defaultValue = "20") limit: Int
+        @RequestParam("offset", defaultValue = "0", required = false) offset: Long,
+        @RequestParam("limit", defaultValue = "20", required = false) limit: Int
     ): ResponseDto<List<VerifyRequestDto>> {
         return ResponseDto.builder<List<VerifyRequestDto>>()
             .body(verifyService.getRequests(offset, limit))

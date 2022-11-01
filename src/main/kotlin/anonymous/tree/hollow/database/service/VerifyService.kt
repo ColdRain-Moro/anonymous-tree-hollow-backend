@@ -65,13 +65,13 @@ class VerifyService {
         }, 10, TimeUnit.MINUTES)
     }
 
-    fun sendRequest(email: String, image: MultipartFile): Boolean {
+    fun sendRequest(userId: Long, image: MultipartFile): Boolean {
         // 图片拓展名
         val suffix = image.originalFilename?.split(".")?.last() ?: "jpg"
         val uuid = UUID.randomUUID().toString()
         val url = cdnService.putObject(idCardScope, "$uuid.$suffix", image.inputStream, image.size)
         return transaction {
-            val user = UserEntity.find { TableUser.email eq email }.firstOrNull() ?: return@transaction false
+            val user = UserEntity.findById(userId) ?: return@transaction false
             IDCardVerifyQueueEntity.new {
                 this.user = user
                 imageUrl = url
@@ -114,10 +114,9 @@ class VerifyService {
         }
     }
 
-    fun hasRequested(email: String): Boolean {
+    fun hasRequested(userId: Long): Boolean {
         return transaction {
-            val user = UserEntity.find { TableUser.email eq email }.firstOrNull() ?: return@transaction false
-            !IDCardVerifyQueueEntity.find { TableIDCardVerifyQueue.user eq user.id }.empty()
+            !IDCardVerifyQueueEntity.find { TableIDCardVerifyQueue.user eq userId }.empty()
         }
     }
 }

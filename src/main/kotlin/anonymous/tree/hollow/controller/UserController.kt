@@ -64,14 +64,15 @@ class UserController(
                 .status(HttpStatus.BAD_REQUEST)
                 .build()
         }
+        val userId = userService.register(email, password)
         // 帐号是否已经存在
-        if (!userService.register(email, password)) {
+        if (userId == -1L) {
             return ResponseDto.builder<String>()
                 .message("这个邮箱已经注册过了")
                 .status(HttpStatus.BAD_REQUEST)
                 .build()
         }
-        StpUtil.login(email)
+        StpUtil.login(userId)
         return if (email.isStuEmail()) {
             ResponseDto.builder<String>()
                 .message("是学生邮箱，无需验证")
@@ -97,8 +98,9 @@ class UserController(
         @RequestParam("email") email: String,
         @RequestParam("password") password: String
     ): ResponseDto<String> {
-        return if (userService.login(email, password)) {
-            StpUtil.login(email)
+        val userId = userService.login(email, password)
+        return if (userId != -1L) {
+            StpUtil.login(userId)
             ResponseDto.ok()
         } else {
             ResponseDto.builder<String>()
@@ -148,8 +150,8 @@ class UserController(
         @RequestParam("oldPassword") oldPassword: String,
         @RequestParam("newPassword") newPassword: String
     ): ResponseDto<String> {
-        val email = StpUtil.getLoginIdAsString()
-        if (!userService.changePassword(email, oldPassword, newPassword)) {
+        val userId = StpUtil.getLoginIdAsLong()
+        if (!userService.changePassword(userId, oldPassword, newPassword)) {
             return ResponseDto.builder<String>()
                 .message("老密码不正确")
                 .status(HttpStatus.BAD_REQUEST)
@@ -166,8 +168,8 @@ class UserController(
     @SaCheckLogin
     @GetMapping("logout")
     fun ctrlLogout(): ResponseDto<String> {
-        val email = StpUtil.getLoginIdAsString()
-        StpUtil.kickout(email)
+        val userId = StpUtil.getLoginIdAsLong()
+        StpUtil.kickout(userId)
         return ResponseDto.ok()
     }
 }

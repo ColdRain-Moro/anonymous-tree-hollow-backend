@@ -1,10 +1,12 @@
 package anonymous.tree.hollow.database.entity
 
+import anonymous.tree.hollow.database.dto.PostDto
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.LongIdTable
 import org.jetbrains.exposed.sql.Table.Dual.index
+import org.jetbrains.exposed.sql.transactions.transaction
 
 /**
  * anonymous.tree.hollow.database.entity.PostEntity.kt
@@ -56,4 +58,19 @@ class PostEntity(id: EntityID<Long>) : LongEntity(id) {
     var content by TablePost.content
     var image by TablePost.image
     var tags by TablePost.tags
+
+    fun dto(): PostDto {
+        return transaction {
+            PostDto(
+                id = this@PostEntity.id.value,
+                senderMd5 = senderMd5,
+                originSite = originSite,
+                originName = originName,
+                postTime = postTime,
+                content = content,
+                image = image,
+                tags = tags.split(",")
+            )
+        }
+    }
 }
