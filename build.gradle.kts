@@ -24,6 +24,8 @@ dependencies {
 
     // exposed
     implementation("org.jetbrains.exposed:exposed-spring-boot-starter:0.40.1")
+    // 腾讯云cos api
+    implementation("com.qcloud:cos_api:5.6.69")
 
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")

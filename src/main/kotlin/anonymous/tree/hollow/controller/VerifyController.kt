@@ -3,10 +3,12 @@ package anonymous.tree.hollow.controller
 import anonymous.tree.hollow.database.dto.ResponseDto
 import anonymous.tree.hollow.database.dto.VerifyRequestDto
 import anonymous.tree.hollow.database.service.VerifyService
+import anonymous.tree.hollow.user.UserType
 import anonymous.tree.hollow.utils.isEmail
 import anonymous.tree.hollow.utils.randomVerifyCode
 import cn.dev33.satoken.annotation.SaCheckLogin
 import cn.dev33.satoken.annotation.SaCheckRole
+import cn.dev33.satoken.stp.StpUtil
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
@@ -48,26 +50,56 @@ class VerifyController(private val verifyService: VerifyService) {
             .build()
     }
 
+    /**
+     * 已经发送请求，但未审核(0) / 未发送请求(1) / 请求已通过(2)
+     */
     @SaCheckLogin
+    @GetMapping("check")
+    fun ctrlCheckStatus(): ResponseDto<Int> {
+        if (!StpUtil.getRoleList().contains(UserType.UNAUTHORIZED.token)) {
+            return ResponseDto.builder<Int>()
+                .body(2)
+                .build()
+        }
+        val email = StpUtil.getLoginId().toString()
+        return ResponseDto.builder<Int>()
+            .body(if (verifyService.hasRequested(email)) 0 else 1)
+            .build()
+    }
+
+
+    @SaCheckLogin
+    @SaCheckRole("unauthorized")
     @PutMapping("upgradeRequest")
     fun ctrlUpgradeRequest(
         @RequestParam("image") image: MultipartFile
-    ) {
-
+    ): ResponseDto<String> {
+        val email = StpUtil.getLoginId().toString()
+        // 预检一下文件大小，大于10MB的情况下直接拒绝，防止OOM
+        if (image.size > 10 * 1024 * 1024) {
+            return ResponseDto.builder<String>()
+                .status(HttpStatus.BAD_REQUEST)
+                .message("上传照片大小不能超过10MB")
+                .build()
+        }
+        verifyService.sendRequest(email, image)
+        return ResponseDto.ok()
     }
 
     @SaCheckLogin
     @SaCheckRole("admin")
     @PostMapping("upgradeRequest")
-    fun ctrlAccept() {
-
+    fun ctrlAccept(@RequestParam("id") id: Long): ResponseDto<String> {
+        verifyService.acceptRequest(id)
+        return ResponseDto.ok()
     }
 
     @SaCheckLogin
     @SaCheckRole("admin")
     @DeleteMapping("upgradeRequest")
-    fun ctrlReject() {
-
+    fun ctrlReject(@RequestParam("id") id: Long): ResponseDto<String> {
+        verifyService.rejectRequest(id)
+        return ResponseDto.ok()
     }
 
     @SaCheckLogin

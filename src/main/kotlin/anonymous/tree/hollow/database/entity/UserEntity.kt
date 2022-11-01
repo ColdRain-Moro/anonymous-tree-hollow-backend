@@ -6,6 +6,7 @@ import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.LongIdTable
+import org.jetbrains.exposed.sql.transactions.transaction
 
 /**
  * anonymous.tree.hollow.database.entity.UserEntity.kt
@@ -48,6 +49,8 @@ class UserEntity(id: EntityID<Long>) : LongEntity(id) {
         get() = UserType.fromCode(type)
 
     fun dto(): UserDto {
-        return UserDto(id.value, email, idCardImgUrl, userType.token, join)
+        return transaction {
+            UserDto(this@UserEntity.id.value, email, idCardImgUrl, userType.token, join)
+        }
     }
 }

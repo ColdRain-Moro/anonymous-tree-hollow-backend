@@ -6,6 +6,7 @@ import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.dao.id.LongIdTable
+import org.jetbrains.exposed.sql.transactions.transaction
 
 /**
  * anonymous.tree.hollow.database.entity.IDCardVerifyQueueEntity.kt
@@ -29,6 +30,8 @@ class IDCardVerifyQueueEntity(id: EntityID<Long>) : LongEntity(id) {
     var time by TableIDCardVerifyQueue.time
 
     fun dto(): VerifyRequestDto {
-        return VerifyRequestDto(id.value, imageUrl, user.dto(), time)
+        return transaction {
+            VerifyRequestDto(this@IDCardVerifyQueueEntity.id.value, imageUrl, user.dto(), time)
+        }
     }
 }
