@@ -1,16 +1,13 @@
 package anonymous.tree.hollow.database.service
 
+import anonymous.tree.hollow.database.dto.CommentDto
 import anonymous.tree.hollow.database.dto.PostDto
-import anonymous.tree.hollow.database.entity.PostEntity
-import anonymous.tree.hollow.database.entity.TablePost
-import anonymous.tree.hollow.database.entity.UserEntity
+import anonymous.tree.hollow.database.entity.*
 import anonymous.tree.hollow.service.CDNService
 import anonymous.tree.hollow.utils.md5
-import org.jetbrains.exposed.sql.Op
-import org.jetbrains.exposed.sql.SortOrder
+import org.jetbrains.exposed.dao.id.EntityID
+import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.like
-import org.jetbrains.exposed.sql.and
-import org.jetbrains.exposed.sql.or
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
@@ -87,6 +84,38 @@ class PostService(private val cdnService: CDNService) {
                 .limit(limit, offset)
                 .orderBy(TablePost.postTime to SortOrder.DESC)
                 .map { it.dto() }
+        }
+    }
+
+    fun getComments(postId: Long, limit: Int, offset: Long): List<CommentDto> {
+        return transaction {
+            CommentEntity.find { TableComment.post eq postId }
+                .limit(limit, offset)
+                .orderBy(TablePost.postTime to SortOrder.DESC)
+                .map { it.dto() }
+        }
+    }
+
+    fun putComment(postId: Long, userId: Long, content: String, image: MultipartFile?, replyId: Long?): Boolean {
+        val uuid = UUID.randomUUID()
+        val imageUrl = image?.let {
+            val suffix = image.originalFilename?.split(".")?.last() ?: "jpg"
+            cdnService.putObject(imgBedScope, "$uuid.$suffix", image.inputStream, image.size)
+        }
+        return transaction {
+            val reply = replyId?.let { CommentEntity.findById(it) }
+            val post = PostEntity.findById(postId) ?: return@transaction false
+            CommentEntity.new {
+                senderMd5 = "${userId}@$siteAddress${post.uuid}".md5()
+                this.post = post
+                postTime = System.currentTimeMillis()
+                originSite = siteAddress
+                originName = siteName
+                this.content = content
+                this.reply = reply
+                this.image = imageUrl
+            }
+            true
         }
     }
 }

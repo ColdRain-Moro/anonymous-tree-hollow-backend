@@ -15,3 +15,4 @@ package anonymous.tree.hollow.utils
 fun String.isAvailablePassword(): Boolean {
     return length >= 6
 }
+

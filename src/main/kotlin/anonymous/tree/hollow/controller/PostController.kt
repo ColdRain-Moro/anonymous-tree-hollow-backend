@@ -1,5 +1,6 @@
 package anonymous.tree.hollow.controller
 
+import anonymous.tree.hollow.database.dto.CommentDto
 import anonymous.tree.hollow.database.dto.PostDto
 import anonymous.tree.hollow.database.dto.ResponseDto
 import anonymous.tree.hollow.database.service.PostService
@@ -92,14 +93,31 @@ class PostController(private val postService: PostService) {
 
     @GetMapping("/comment")
     fun ctrlGetComments(
-        @RequestParam("offset", defaultValue = "0", required = false) offset: Int,
+        @RequestParam("postId") postId: Long,
+        @RequestParam("offset", defaultValue = "0", required = false) offset: Long,
         @RequestParam("limit", defaultValue = "20", required = false) limit: Int
-    ) {
-
+    ): ResponseDto<List<CommentDto>> {
+        val comments = postService.getComments(postId, limit, offset)
+        return ResponseDto.builder<List<CommentDto>>()
+            .body(comments)
+            .build()
     }
 
+    // 要做分布式的话这里要改一改，加一个只有服务器之间能互相访问的接口
+    // 并且兼容不同站点标识
     @PutMapping("/comment")
-    fun ctrlPutComment() {
-
+    fun ctrlPutComment(
+        @RequestParam("postId") postId: Long,
+        @RequestParam("content") content: String,
+        @RequestParam("image", required = false) image: MultipartFile?,
+        @RequestParam("reply", required = false) reply: Long?
+    ): ResponseDto<String> {
+        if (postService.putComment(postId, StpUtil.getLoginIdAsLong(), content, image, reply)) {
+            return ResponseDto.builder<String>()
+                .status(HttpStatus.BAD_REQUEST)
+                .message("不存在的帖子")
+                .build()
+        }
+        return ResponseDto.ok()
     }
 }

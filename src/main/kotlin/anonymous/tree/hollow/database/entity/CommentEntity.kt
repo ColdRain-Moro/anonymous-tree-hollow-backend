@@ -1,9 +1,11 @@
 package anonymous.tree.hollow.database.entity
 
+import anonymous.tree.hollow.database.dto.CommentDto
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.LongIdTable
+import org.jetbrains.exposed.sql.transactions.transaction
 
 /**
  * anonymous.tree.hollow.database.entity.CommentEntity.kt
@@ -33,7 +35,6 @@ class CommentEntity(id: EntityID<Long>) : LongEntity(id) {
     companion object : LongEntityClass<CommentEntity>(TableComment)
 
     var senderMd5 by TableComment.senderMd5
-    val uuid by TableComment.uuid
     var post by PostEntity referencedOn TableComment.post
     var postTime by TableComment.postTime
     var originSite by TableComment.originSite
@@ -41,4 +42,20 @@ class CommentEntity(id: EntityID<Long>) : LongEntity(id) {
     var content by TableComment.content
     var image by TableComment.image
     var reply by CommentEntity optionalReferencedOn TableComment.reply
+
+    fun dto(): CommentDto {
+        return transaction {
+            CommentDto(
+                id = this@CommentEntity.id.value,
+                senderMd5 = senderMd5,
+                post = post.dto(),
+                postTime = System.currentTimeMillis(),
+                originSite = originSite,
+                originName = originName,
+                content = content,
+                image = image,
+                reply = reply?.dto()
+            )
+        }
+    }
 }
