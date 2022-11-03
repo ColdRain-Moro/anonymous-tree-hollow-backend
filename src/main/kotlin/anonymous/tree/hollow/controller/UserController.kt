@@ -1,12 +1,11 @@
 package anonymous.tree.hollow.controller
 
-import anonymous.tree.hollow.database.dto.ResponseDto
+import anonymous.tree.hollow.database.dto.response.ResponseDto
 import anonymous.tree.hollow.database.service.UserService
 import anonymous.tree.hollow.database.service.VerifyService
 import anonymous.tree.hollow.utils.isAvailablePassword
 import anonymous.tree.hollow.utils.isEmail
 import anonymous.tree.hollow.utils.isStuEmail
-import anonymous.tree.hollow.utils.randomVerifyCode
 import cn.dev33.satoken.annotation.SaCheckLogin
 import cn.dev33.satoken.stp.StpUtil
 import org.springframework.http.HttpStatus
@@ -16,7 +15,6 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
-import org.springframework.web.multipart.MultipartFile
 
 /**
  * anonymous.tree.hollow.controller.AuthController.kt

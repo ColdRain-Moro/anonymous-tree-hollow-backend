@@ -2,12 +2,16 @@ package anonymous.tree.hollow.controller
 
 import anonymous.tree.hollow.database.dto.CommentDto
 import anonymous.tree.hollow.database.dto.PostDto
-import anonymous.tree.hollow.database.dto.ResponseDto
+import anonymous.tree.hollow.database.dto.request.VoteInfo
+import anonymous.tree.hollow.database.dto.response.QueryPostResponse
+import anonymous.tree.hollow.database.dto.response.ResponseDto
 import anonymous.tree.hollow.database.service.PostService
 import cn.dev33.satoken.annotation.SaCheckLogin
 import cn.dev33.satoken.annotation.SaCheckRole
 import cn.dev33.satoken.stp.StpUtil
-import org.springframework.beans.factory.annotation.Value
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
@@ -29,11 +33,24 @@ import org.springframework.web.multipart.MultipartFile
 @RestController("/post/")
 class PostController(private val postService: PostService) {
 
+    @Autowired
+    private lateinit var objectMapper: ObjectMapper
+
+    /**
+     * 发帖
+     *
+     * @param content
+     * @param image
+     * @param tags
+     * @param voteInfo json格式的 VoteInfo
+     * @return
+     */
     @PutMapping
     fun ctrlPutPost(
         @RequestParam("content") content: String,
         @RequestParam("image", required = false) image: MultipartFile?,
-        @RequestParam("tags") tags: String
+        @RequestParam("tags", required = false, defaultValue = "") tags: String,
+        @RequestParam("voteInfo", required = false) voteInfo: String?
     ): ResponseDto<PostDto> {
         if (content.length > 1000) {
             return ResponseDto.builder<PostDto>()
@@ -47,7 +64,22 @@ class PostController(private val postService: PostService) {
                 .message("图片太大啦，图片大小不能超过10MB")
                 .build()
         }
-        val post = postService.putPost(StpUtil.getLoginIdAsLong(), content, image, tags)
+        val voteInfoObj = kotlin.runCatching { voteInfo?.let { objectMapper.readValue<VoteInfo>(it) } }
+            .onFailure {
+                return ResponseDto.builder<PostDto>()
+                    .status(HttpStatus.BAD_REQUEST)
+                    .message("voteInfo json数据解析异常")
+                    .build()
+            }
+            .getOrThrow()
+        val post = kotlin.runCatching { postService.putPost(StpUtil.getLoginIdAsLong(), content, image, tags, voteInfoObj) }
+            .onFailure {
+                return ResponseDto.builder<PostDto>()
+                    .status(HttpStatus.BAD_REQUEST)
+                    .message("voteInfoObj参数异常")
+                    .build()
+            }
+            .getOrThrow()
         return ResponseDto.builder<PostDto>()
             .body(post)
             .build()
@@ -74,9 +106,9 @@ class PostController(private val postService: PostService) {
         @RequestParam("offset", defaultValue = "0", required = false) offset: Long,
         @RequestParam("limit", defaultValue = "20", required = false) limit: Int,
         @RequestParam("filter", defaultValue = "", required = false) filter: String
-    ): ResponseDto<List<PostDto>> {
-        return ResponseDto.builder<List<PostDto>>()
-            .body(postService.getPosts(limit, offset, filter))
+    ): ResponseDto<List<QueryPostResponse>> {
+        return ResponseDto.builder<List<QueryPostResponse>>()
+            .body(postService.getPosts(limit, offset, filter, StpUtil.getLoginIdAsLong()))
             .build()
     }
 
@@ -112,10 +144,24 @@ class PostController(private val postService: PostService) {
         @RequestParam("image", required = false) image: MultipartFile?,
         @RequestParam("reply", required = false) reply: Long?
     ): ResponseDto<String> {
-        if (postService.putComment(postId, StpUtil.getLoginIdAsLong(), content, image, reply)) {
+        if (!postService.putComment(postId, StpUtil.getLoginIdAsLong(), content, image, reply)) {
             return ResponseDto.builder<String>()
                 .status(HttpStatus.BAD_REQUEST)
                 .message("不存在的帖子")
+                .build()
+        }
+        return ResponseDto.ok()
+    }
+
+    @PutMapping("/vote")
+    fun ctrlVote(
+        @RequestParam("voteId") voteId: Long,
+        @RequestParam("option") option: Int
+    ): ResponseDto<String> {
+        if (!postService.vote(StpUtil.getLoginIdAsLong(), voteId, option)) {
+            return ResponseDto.builder<String>()
+                .status(HttpStatus.BAD_REQUEST)
+                .message("投票不存在或已经投过票")
                 .build()
         }
         return ResponseDto.ok()

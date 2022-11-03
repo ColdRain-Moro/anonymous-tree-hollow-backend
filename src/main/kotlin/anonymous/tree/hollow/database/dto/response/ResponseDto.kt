@@ -1,9 +1,9 @@
-package anonymous.tree.hollow.database.dto
+package anonymous.tree.hollow.database.dto.response
 
 import org.springframework.http.HttpStatus
 
 /**
- * anonymous.tree.hollow.database.dto.ResponseDto.kt
+ * anonymous.tree.hollow.database.dto.response.ResponseDto.kt
  * AnonymousTreeHollow
  *
  * @author 寒雨

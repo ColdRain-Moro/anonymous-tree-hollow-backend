@@ -15,5 +15,6 @@ data class PostDto(
     val postTime: Long,
     val content: String,
     val image: String?,
-    val tags: List<String>
+    val tags: List<String>,
+    val vote: VoteDto?
 )

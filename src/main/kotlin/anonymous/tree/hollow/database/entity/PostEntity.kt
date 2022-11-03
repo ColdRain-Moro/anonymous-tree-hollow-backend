@@ -13,6 +13,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
  * AnonymousTreeHollow
  *
  * 帖子是全部站共享，但是其中的评论是各存各的，使用评论相关的接口时会重定向到目标站的接口
+ * 由于可能有多个后端，所以id的值并不唯一，因使用 id@站点地址 (eg. 114514@redrock.team) 作为唯一标识
  *
  * @author 寒雨
  * @since 2022/10/30 上午11:27
@@ -37,6 +38,7 @@ object TablePost : LongIdTable("post") {
     val image = varchar("image", 256).nullable()
     // tags 用,隔开
     val tags = text("tags").default("")
+    val vote = optReference("vote", TableVote)
 
     init {
         // 给tags加上全文索引，提升搜索效率
@@ -58,6 +60,7 @@ class PostEntity(id: EntityID<Long>) : LongEntity(id) {
     var content by TablePost.content
     var image by TablePost.image
     var tags by TablePost.tags
+    var vote by VoteEntity optionalReferencedOn TablePost.vote
 
     fun dto(): PostDto {
         return transaction {
@@ -69,7 +72,8 @@ class PostEntity(id: EntityID<Long>) : LongEntity(id) {
                 postTime = postTime,
                 content = content,
                 image = image,
-                tags = tags.split(",")
+                tags = tags.split(","),
+                vote = vote?.dto()
             )
         }
     }

@@ -16,7 +16,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
  * @since 2022/10/31 下午11:58
  */
 object TableIDCardVerifyQueue : LongIdTable("id_card_verify_queue") {
-    val user = reference("user", TableUser).uniqueIndex()
+    val user = reference("user_id", TableUser).uniqueIndex()
     val imageUrl = text("image_url")
     // 请求时间
     val time = long("time")

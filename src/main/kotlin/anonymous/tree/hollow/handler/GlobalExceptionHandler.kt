@@ -1,6 +1,6 @@
 package anonymous.tree.hollow.handler
 
-import anonymous.tree.hollow.database.dto.ResponseDto
+import anonymous.tree.hollow.database.dto.response.ResponseDto
 import anonymous.tree.hollow.user.UserType
 import cn.dev33.satoken.exception.NotLoginException
 import cn.dev33.satoken.exception.NotPermissionException

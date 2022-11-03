@@ -18,7 +18,7 @@ object TableComment : LongIdTable("comment") {
     val senderMd5 = varchar("sender_md5", 32)
     val uuid = uuid("uuid").uniqueIndex()
     // 哪个帖子下的评论
-    val post = reference("post", TablePost)
+    val post = reference("post_id", TablePost)
     val postTime = long("post_time")
     // 来源 例: anonymous.tree.hollow
     val originSite = varchar("origin_site", 128)
@@ -27,7 +27,7 @@ object TableComment : LongIdTable("comment") {
     val content = text("content")
     val image = varchar("image", 256).nullable()
     // 回复某评论
-    val reply = reference("reply", TableComment).nullable()
+    val reply = reference("reply_id", TableComment).nullable()
 }
 
 class CommentEntity(id: EntityID<Long>) : LongEntity(id) {

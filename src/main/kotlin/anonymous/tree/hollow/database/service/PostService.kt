@@ -2,6 +2,9 @@ package anonymous.tree.hollow.database.service
 
 import anonymous.tree.hollow.database.dto.CommentDto
 import anonymous.tree.hollow.database.dto.PostDto
+import anonymous.tree.hollow.database.dto.VoteDto
+import anonymous.tree.hollow.database.dto.request.VoteInfo
+import anonymous.tree.hollow.database.dto.response.QueryPostResponse
 import anonymous.tree.hollow.database.entity.*
 import anonymous.tree.hollow.service.CDNService
 import anonymous.tree.hollow.utils.md5
@@ -31,7 +34,7 @@ class PostService(private val cdnService: CDNService) {
     @Value("\${anonymous-tree-hollow.cdn.image-bed-scope}")
     private lateinit var imgBedScope: String
 
-    fun putPost(id: Long, content: String, image: MultipartFile?, tags: String): PostDto {
+    fun putPost(id: Long, content: String, image: MultipartFile?, tags: String, voteInfo: VoteInfo?): PostDto {
         return transaction {
             val uuid = UUID.randomUUID()
             val imageUrl = image?.let {
@@ -39,7 +42,7 @@ class PostService(private val cdnService: CDNService) {
                 cdnService.putObject(imgBedScope, "$uuid.$suffix", image.inputStream, image.size)
             }
             val user = UserEntity.findById(id) ?: error("")
-            PostEntity.new {
+            val post = PostEntity.new {
                 this.uuid = uuid
                 // 1@redrock.team加盐再md5散列
                 senderMd5 = "${user.id}@$siteAddress$uuid".md5()
@@ -49,7 +52,19 @@ class PostService(private val cdnService: CDNService) {
                 this.content = content
                 this.image = imageUrl
                 this.tags = tags
-            }.dto()
+            }
+            val vote = voteInfo?.let {
+                VoteEntity.new {
+                    this.post = post
+                    this.content = voteInfo.content
+                    optionA = voteInfo.options[0]
+                    optionB = voteInfo.options.getOrNull(1)
+                    optionC = voteInfo.options.getOrNull(2)
+                    optionD = voteInfo.options.getOrNull(3)
+                }
+            }
+            post.vote = vote
+            post.dto()
         }
     }
 
@@ -61,7 +76,7 @@ class PostService(private val cdnService: CDNService) {
         }
     }
 
-    fun getPosts(limit: Int, offset: Long, filter: String): List<PostDto> {
+    fun getPosts(limit: Int, offset: Long, filter: String, userId: Long): List<QueryPostResponse> {
         return transaction {
             val iter = if (filter.isEmpty()) {
                 PostEntity.all()
@@ -74,7 +89,17 @@ class PostService(private val cdnService: CDNService) {
             }
             iter.limit(limit, offset)
                 .orderBy(TablePost.postTime to SortOrder.DESC)
-                .map { it.dto() }
+                .map {
+                    it to if (it.vote != null) {
+                        VoteRecordEntity.find {
+                            TableVoteRecord.vote eq it.vote!!.id and
+                                    (TableVoteRecord.senderMd5 eq "${userId}@$siteAddress".md5())
+                        }.firstOrNull()?.option ?: 0
+                    } else {
+                        0
+                    }
+                }
+                .map { (postEntity, option) -> QueryPostResponse(postEntity.dto(), option) }
         }
     }
 
@@ -114,6 +139,22 @@ class PostService(private val cdnService: CDNService) {
                 this.content = content
                 this.reply = reply
                 this.image = imageUrl
+            }
+            true
+        }
+    }
+
+    fun vote(userId: Long, voteId: Long, option: Int): Boolean {
+        return transaction {
+            val vote = VoteEntity.findById(voteId) ?: return@transaction false
+            if (!VoteRecordEntity.find {
+                TableVoteRecord.vote eq voteId and
+                        (TableVoteRecord.senderMd5 eq "${userId}@$siteAddress".md5())
+            }.empty()) return@transaction false
+            VoteRecordEntity.new {
+                senderMd5 = "${userId}@$siteAddress".md5()
+                this.option = option
+                this.vote = vote
             }
             true
         }

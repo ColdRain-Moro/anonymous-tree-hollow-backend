@@ -1,6 +1,6 @@
 package anonymous.tree.hollow.controller
 
-import anonymous.tree.hollow.database.dto.ResponseDto
+import anonymous.tree.hollow.database.dto.response.ResponseDto
 import anonymous.tree.hollow.database.dto.VerifyRequestDto
 import anonymous.tree.hollow.database.service.VerifyService
 import anonymous.tree.hollow.user.UserType

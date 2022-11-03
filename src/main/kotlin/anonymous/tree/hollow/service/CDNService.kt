@@ -1,5 +1,6 @@
 package anonymous.tree.hollow.service
 
+import anonymous.tree.hollow.service.rpc.RPCService
 import com.qcloud.cos.COSClient
 import com.qcloud.cos.ClientConfig
 import com.qcloud.cos.auth.BasicCOSCredentials
@@ -8,6 +9,7 @@ import com.qcloud.cos.model.GetObjectRequest
 import com.qcloud.cos.model.ObjectMetadata
 import com.qcloud.cos.model.PutObjectRequest
 import com.qcloud.cos.region.Region
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.io.InputStream
@@ -38,6 +40,7 @@ interface CDNService {
 
 }
 
+@Service
 class CDNServiceImpl : CDNService {
 
     @Value("\${anonymous-tree-hollow.cos.secret-id}")
